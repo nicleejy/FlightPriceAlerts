@@ -1,4 +1,3 @@
-const { findSeries } = require("async");
 const axios = require("axios");
 const fs = require("fs");
 
@@ -57,61 +56,6 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 
 // getFlightData("SIN", "HBA", 3, "2022-12-10", "2022-12-20");
 
-flight = {
-	deeplink:
-		"https://www.skyscanner.net/transport/flights/sin/hba/221211/221220/config/16292-2212110045--31876-1-12084-2212120905|12084-2212201035--31876-1-16292-2212210015?adults=1&adultsv2=1&cabinclass=economy&children=0&childrenv2=&destinationentityid=27542001&originentityid=27546111&inboundaltsenabled=false&infants=0&outboundaltsenabled=false&preferdirects=false&ref=home&rtn=1",
-	pricing: [
-		{ price: 800, agent: "GotoGate" },
-		{ price: 400, agent: "My trip" },
-	],
-
-	to: {
-		segments: 2,
-		stopovers: ["Melbourne"],
-		flights: [
-			{
-				airline: "Scoot",
-				number: "TR435",
-				from: "Singapore",
-				to: "Melbourne",
-				depart: "",
-				arrive: "",
-			},
-			{
-				airline: "Singapore Airlines",
-				number: "SQ652",
-				from: "Melbourne",
-				to: "Hobart",
-				depart: "",
-				arrive: "",
-			},
-		],
-	},
-
-	from: {
-		segments: 2,
-		stopovers: ["Melbourne, Kuala Lumpur"],
-		flights: [
-			{
-				airline: "Scoot",
-				number: "TR435",
-				from: "Singapore",
-				to: "Melbourne",
-				depart: "",
-				arrive: "",
-			},
-			{
-				airline: "Singapore Airlines",
-				number: "SQ652",
-				from: "Melbourne",
-				to: "Hobart",
-				depart: "",
-				arrive: "",
-			},
-		],
-	},
-};
-
 // Mimicks API call to save queries
 function mockGetFlightData() {
 	var data = JSON.parse(fs.readFileSync("response.json"));
@@ -127,8 +71,7 @@ function mockGetFlightData() {
 			console.log("Success");
 		}
 	});
-
-	console.log(allFlights);
+	return allFlights;
 }
 
 // Main function intended to extract and reorganise the relevant flight information
@@ -160,7 +103,10 @@ function parseFlightData(itineraryResults) {
 			back: flightsArrBack,
 		});
 	}
-	return allFlights;
+
+	return allFlights.sort((flightA, flightB) =>
+		flightA.pricing[0].price > flightB.pricing[0].price ? 1 : -1
+	);
 }
 
 // Organises the flight segements for any particular leg of the trip
@@ -169,6 +115,7 @@ function getFlightSegments(leg) {
 	const segmentDetails = leg.segments;
 	const segmentCount = leg.segments.length;
 	var flightsArray = [];
+	var stopovers = [];
 
 	for (var i = 0; i < segmentCount; i++) {
 		segmentData = segmentDetails[i];
@@ -189,7 +136,17 @@ function getFlightSegments(leg) {
 			arrive: arrival,
 		});
 	}
-	return { segments: segmentCount, flights: flightsArray };
+
+	if (segmentCount > 1) {
+		for (var j = 0; j < segmentCount - 1; j++) {
+			stopovers.push(flightsArray[j].to);
+		}
+	}
+	return {
+		segments: segmentCount,
+		stopovers: stopovers,
+		flights: flightsArray,
+	};
 }
 
 // Loops through specifically pricing options and extracts the agent and pricing data
@@ -197,18 +154,25 @@ function getPrices(pricingDetails) {
 	var pricingArray = [];
 	for (var i = 0; i < pricingDetails.length; i++) {
 		let agent = "";
+		let rating = 0;
 		pricingOption = pricingDetails[i];
 		agentsList = pricingOption.agents;
 		if (agentsList.length >= 1) {
 			agent = agentsList[0].name;
+			if (agentsList[0].hasOwnProperty("rating")) {
+				rating = agentsList[0].rating;
+			}
 		}
 		price = pricingOption.price.amount;
 		pricingArray.push({
 			price: price,
 			agent: agent,
+			rating: rating,
 		});
 	}
-	return pricingArray;
+	return pricingArray.sort((priceA, priceB) =>
+		priceA.price > priceB.price ? 1 : -1
+	);
 }
 
-mockGetFlightData();
+module.exports = { mockGetFlightData, getFlightData };
