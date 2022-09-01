@@ -20,6 +20,8 @@ function updateSetting(attr, value) {
 		settings.isSetting = value;
 	} else if (attr == "duration") {
 		settings.duration = value;
+	} else if (attr == "budget") {
+		settings.budget = value;
 	} else {
 		settings.to = value;
 	}
@@ -51,6 +53,8 @@ function getState(attr) {
 		return settings.isSetting;
 	} else if (attr == "duration") {
 		return settings.duration;
+	} else if (attr == "budget") {
+		return settings.budget;
 	} else {
 		return settings.to;
 	}
@@ -162,7 +166,36 @@ function updateStopoverSettings(num) {
 	updateSetting("stopovers", num);
 }
 
+function updateBudgetSettings(price) {
+	updateSetting("isSetting", null);
+	updateSetting("budget", price);
+}
 
 
 
-module.exports = { updateSetting, getState, isAllowedSetting, parseDate, getDateString, isValidDate, cancelProcess, filterAirports, getSpecificAirport, updateAirportSettings, updateDateSettings, updateDurationSettings, updateStopoverSettings};
+function formatDate(datetime) {
+	function tConvert(time) {
+		// Check correct time format and split into components
+		time = time.toString ().match (/^([01]\d|2[0-3])(:)([0-5]\d)(:[0-5]\d)?$/) || [time];
+	
+		if (time.length > 1) { // If time format correct
+		time = time.slice (1);  // Remove full string match value
+		time[5] = +time[0] < 12 ? 'AM' : 'PM'; // Set AM/PM
+		time[0] = +time[0] % 12 || 12; // Adjust hours
+		}
+		return time.join(''); // return adjusted time or original string
+	  }
+	
+	dateSplit = new Date(datetime).toString().split(" ");
+	day = dateSplit[0];
+	month = dateSplit[1];
+	date = dateSplit[2];
+	year = dateSplit[3];
+	time = tConvert(dateSplit[4]);
+	return `${day} ${date} ${month} ${year} at ${time}`
+}
+
+
+
+
+module.exports = { updateSetting, getState, isAllowedSetting, parseDate, getDateString, isValidDate, cancelProcess, filterAirports, getSpecificAirport, updateAirportSettings, updateDateSettings, updateDurationSettings, updateStopoverSettings, updateBudgetSettings, formatDate};

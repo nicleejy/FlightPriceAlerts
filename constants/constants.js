@@ -6,7 +6,7 @@ const mainKeyboard = [["Price Summary", "Settings"]];
 const settingsKeyboard = [
 	["Departure Airport", "Arrival Airport"],
 	["Departure Date", "Arrival Date"],
-	["Duration",  "Stopovers"],
+	["Set Duration",  "Set Stopovers", "Set Budget"],
 	["Cancel"],
 ];
 
