@@ -1,22 +1,21 @@
-const networkClient = require("./network");
-const utils = require("./utils");
+const networkClient = require("./network_clients/network");
+const utils = require("./utilities/utils");
 const fs = require("fs");
 const { Telegraf, Scenes, session, Markup } = require("telegraf");
 require("dotenv").config({ path: ".env" });
+const dateScenes = require('./scenes/dateScenes');
+const airportScenes = require('./scenes/airportScenes');
+const appConstants = require("./constants/constants");
+const durationScene = require("./scenes/durationScene");
+const stopoverScene = require("./scenes/stopoverScene");
+
 
 const flights = networkClient.mockGetFlightData();
-var airportsList = JSON.parse(fs.readFileSync("airports.json"));
 
-const mainKeyboard = [["Price Summary", "Settings"]];
-const settingsKeyboard = [
-	["Departure Airport", "Arrival Airport"],
-	["Departure Date", "Stopovers", "Duration"],
-	["Cancel"],
-];
 
 // filter by max price and stopovers
 function filterFlights(maxPrice, maxStopovers) {
-	filtered = flights.filter(function (flight) {
+	const filtered = flights.filter(function (flight) {
 		return (
 			flight.pricing[0].price <= maxPrice &&
 			flight.to.stopovers.length <= maxStopovers &&
@@ -40,10 +39,11 @@ filterFlights(7000, 2);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// START COMMAND
 bot.start(async (ctx) => {
 	return await ctx.reply(
 		"Hello!",
-		Markup.keyboard(mainKeyboard).oneTime().resize()
+		Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 	);
 });
 
@@ -60,160 +60,105 @@ var job = new CronJob(
 // Use this if the 4th param is default value(false)
 // job.start();
 
+// SETTINGS COMMAND
 bot.hears("Settings", async (ctx) => {
-	utils.updateSetting("isSetting", true);
-	return await ctx.reply(
+	if (utils.isAllowedSetting(ctx)) {
+		return await ctx.reply(
 		"Settings",
-		Markup.keyboard(settingsKeyboard).oneTime().resize()
-	);
+		Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
+		);
+	} else {
+	return await ctx.reply(
+		"Cannot amend settings right now",
+		Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize());
+	}
 });
 
-const departureScene = new Scenes.WizardScene(
-	"DepartureScene",
-	(ctx) => {
-		ctx.reply(
-			"Type in a place",
-			Markup.keyboard([["Cancel"]])
-				.oneTime()
-				.resize()
-		);
-		return ctx.wizard.next();
-	},
-	(ctx) => {
-		// validation example
-		input = ctx.message.text;
 
-		if (input == "Cancel") {
-			utils.updateSetting("isSetting", false);
-			ctx.reply("okay", Markup.keyboard(mainKeyboard).oneTime().resize());
-			return ctx.scene.leave();
-		}
 
-		filteredAirports = airportsList.filter(function (airport) {
-			return airport.country.toLowerCase().includes(input.toLowerCase());
-		});
-		var airportMarkup = [["Cancel"]];
-
-		for (var i = 0; i < filteredAirports.length; i++) {
-			airportMarkup.push([filteredAirports[i].name]);
-		}
-		if (airportMarkup.length == 1) {
-			ctx.reply("no airports found");
-			return;
-		} else {
-			ctx.reply(
-				"Select the airport",
-				Markup.keyboard(airportMarkup).oneTime().resize()
-			);
-		}
-		return ctx.wizard.next();
-	},
-	async (ctx) => {
-		airportCodeList = airportsList.filter(function (airport) {
-			return airport.name == ctx.message.text;
-		});
-		input = ctx.message.text;
-		if (input == "Cancel") {
-			utils.updateSetting("isSetting", false);
-			return ctx.scene.leave();
-		}
-
-		if (airportCodeList.length >= 1) {
-			console.log("sucvcess");
-			console.log(airportCodeList);
-			utils.updateSetting("isSetting", false);
-			utils.updateSetting("from", airportCodeList[0].code);
-
-			ctx.reply(
-				"Thank you for your replies, well contact your soon",
-				Markup.keyboard(mainKeyboard).oneTime().resize()
-			);
-			return ctx.scene.leave();
-		}
-		return;
-	}
-);
-
-const arrivalScene = new Scenes.WizardScene(
-	"ArrivalScene",
-	(ctx) => {
-		ctx.reply(
-			"Type in a place",
-			Markup.keyboard([["Cancel"]])
-				.oneTime()
-				.resize()
-		);
-		return ctx.wizard.next();
-	},
-	(ctx) => {
-		// validation example
-		input = ctx.message.text;
-
-		if (input == "Cancel") {
-			utils.updateSetting("isSetting", false);
-			ctx.reply("okay", Markup.keyboard(mainKeyboard).oneTime().resize());
-			return ctx.scene.leave();
-		}
-
-		filteredAirports = airportsList.filter(function (airport) {
-			return airport.country.toLowerCase().includes(input.toLowerCase());
-		});
-		var airportMarkup = [["Cancel"]];
-
-		for (var i = 0; i < filteredAirports.length; i++) {
-			airportMarkup.push([filteredAirports[i].name]);
-		}
-		if (airportMarkup.length == 1) {
-			ctx.reply("no airports found");
-			return;
-		} else {
-			ctx.reply(
-				"Select the airport",
-				Markup.keyboard(airportMarkup).oneTime().resize()
-			);
-		}
-		return ctx.wizard.next();
-	},
-	async (ctx) => {
-		airportCodeList = airportsList.filter(function (airport) {
-			return airport.name == ctx.message.text;
-		});
-		input = ctx.message.text;
-		if (input == "Cancel") {
-			utils.updateSetting("isSetting", false);
-			return ctx.scene.leave();
-		}
-
-		if (airportCodeList.length >= 1) {
-			console.log("sucvcess");
-			console.log(airportCodeList);
-			utils.updateSetting("isSetting", false);
-			utils.updateSetting("to", airportCodeList[0].code);
-
-			ctx.reply("Updated", Markup.keyboard(mainKeyboard).oneTime().resize());
-			return ctx.scene.leave();
-		}
-		return;
-	}
-);
-
-const stage = new Scenes.Stage([departureScene, arrivalScene]);
+const stage = new Scenes.Stage([
+	airportScenes.departureScene, 
+	airportScenes.arrivalScene, 
+	dateScenes.departureDateScene, 
+	dateScenes.arrivalDateScene,
+	durationScene.durationScene,
+	stopoverScene.stopoverScene
+]);
 bot.use(session());
 bot.use(stage.middleware());
 
+
 bot.hears("Departure Airport", (ctx) => {
-	ctx.scene.enter("DepartureScene");
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("DepartureScene");
+	}
+	
 });
 
 bot.hears("Arrival Airport", (ctx) => {
-	ctx.scene.enter("ArrivalScene");
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("ArrivalScene");
+	}
+});
+
+bot.hears("Departure Date", (ctx) => {
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("DepartureDateScene");
+	}
+});
+
+bot.hears("Arrival Date", (ctx) => {
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("ArrivalDateScene");
+	}
+});
+
+bot.hears("Duration", (ctx) => {
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("DurationScene");
+	}
+});
+
+bot.hears("Stopovers", (ctx) => {
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("StopoverScene");
+	}
 });
 
 bot.hears("Cancel", (ctx) => {
-	utils.updateSetting("isSetting", false);
-
-	return ctx.reply("okay", Markup.keyboard(mainKeyboard).oneTime().resize());
+	utils.cancelProcess(ctx);
+	
 });
+
+
+bot.hears("Price Summary", (ctx) => {
+	main();
+	
+});
+
+function main() {
+
+	const stopovers = utils.getState("stopovers");
+	const departureDateStr = utils.getState("departure");
+	const arrivalDateStr = utils.getState("arrival");
+	const tripLength = utils.getState("duration");
+	const source = utils.getState("from");
+	const destination = utils.getState("to");
+
+	var departureDate = new Date(departureDateStr);
+	var arrivalDate = departureDate.addDays(tripLength)
+
+	console.log(departureDate.toLocaleDateString());
+	console.log(arrivalDate.toLocaleDateString());
+
+	
+
+
+
+
+
+}
+
 
 bot.launch();
 

@@ -58,7 +58,7 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 
 // Mimicks API call to save queries
 function mockGetFlightData() {
-	var data = JSON.parse(fs.readFileSync("response.json"));
+	var data = JSON.parse(fs.readFileSync("./constants/response.json"));
 
 	const results = data.itineraries.results;
 	const allFlights = parseFlightData(results);
