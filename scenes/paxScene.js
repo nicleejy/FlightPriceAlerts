@@ -2,11 +2,11 @@ const { Scenes, Markup } = require("telegraf");
 const utils = require("../utilities/utils");
 const appConstants = require("../constants/constants");
 
-const budgetScene = new Scenes.WizardScene(
-	"BudgetScene",
+const paxScene = new Scenes.WizardScene(
+	"PaxScene",
 	(ctx) => {
 		ctx.reply(
-			"maximum allowed budget",
+			"number of pax",
 			Markup.keyboard([["Cancel"]])
 				.oneTime()
 				.resize()
@@ -27,22 +27,22 @@ const budgetScene = new Scenes.WizardScene(
 		if (input.match(regex)) {
 			const value = parseInt(input);
 			if (value <= 0) {
-				ctx.reply("invalid price");
+				ctx.reply("invalid number");
 				return;
 			}
-			utils.updateBudgetSettings(value);
+			utils.updatePaxSettings(value);
 			ctx.reply(
 				"Thank you for your replies, well contact your soon",
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid price");
+			ctx.reply("invalid number");
 			return;
 		}
 	}
 );
 
 module.exports = {
-	budgetScene: budgetScene,
+	paxScene: paxScene,
 };

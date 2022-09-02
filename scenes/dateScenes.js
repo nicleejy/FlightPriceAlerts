@@ -1,7 +1,6 @@
-
-const {Scenes, Markup } = require("telegraf");
+const { Scenes, Markup } = require("telegraf");
 const utils = require("../utilities/utils");
-const appConstants = require("../constants/constants")
+const appConstants = require("../constants/constants");
 
 const arrivalDateScene = new Scenes.WizardScene(
 	"ArrivalDateScene",
@@ -40,7 +39,7 @@ const arrivalDateScene = new Scenes.WizardScene(
 			ctx.reply("invalid date");
 			return;
 		}
-	},
+	}
 );
 
 const departureDateScene = new Scenes.WizardScene(
@@ -65,14 +64,13 @@ const departureDateScene = new Scenes.WizardScene(
 
 		if (utils.isValidDate(input)) {
 			const date = utils.parseDate(input);
-			
 
 			if (new Date(utils.getState("arrival")) < date) {
 				// if arrival date is earlier than set date
 				ctx.reply("This date should be earlier than the arrival date");
 				return;
 			}
-			
+
 			utils.updateDateSettings(true, date);
 			ctx.reply(
 				"Thank you for your replies, well contact your soon",
@@ -83,15 +81,10 @@ const departureDateScene = new Scenes.WizardScene(
 			ctx.reply("invalid date");
 			return;
 		}
-
-		
-	},
+	}
 );
 
-
 module.exports = {
-    arrivalDateScene: arrivalDateScene,
-    departureDateScene: departureDateScene
+	arrivalDateScene: arrivalDateScene,
+	departureDateScene: departureDateScene,
 };
-
-

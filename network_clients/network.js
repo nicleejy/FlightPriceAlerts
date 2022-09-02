@@ -1,5 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
+const utils = require("../utilities/utils");
 
 require("dotenv").config({ path: ".env" });
 
@@ -33,28 +34,29 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 
 	try {
 		const response = await axios.request(options);
-		// const jsonData = JSON.stringify(response.data, null, 2);
-		// fs.writeFile("response.json", jsonData, function (writeError) {
-		// 	if (writeError) {
-		// 		console.log(writeError);
-		// 	} else {
-		// 		console.log("Success");
-		// 	}
-		// });
+		const jsonData = JSON.stringify(response.data, null, 2);
+		fs.writeFile("response.json", jsonData, function (writeError) {
+			if (writeError) {
+				console.log(writeError);
+			} else {
+				console.log("Success");
+			}
+		});
 		const data = response.data;
 
 		if (data.context.status != "complete") {
 			console.log("Not complete, requerying!");
 			setTimeout(getFlightData, 20000);
+		} else {
+			const results = data.itineraries.results;
+			const allFlights = parseFlightData(results);
+			return allFlights;
 		}
-
-		return data;
 	} catch (error) {
-		console.log(error.response);
+		console.log("error occured");
+		console.log(error);
 	}
 }
-
-// getFlightData("SIN", "HBA", 3, "2022-12-10", "2022-12-20");
 
 // Mimicks API call to save queries
 function mockGetFlightData() {
@@ -156,6 +158,7 @@ function getPrices(pricingDetails) {
 		let agent = "";
 		let rating = 0;
 		pricingOption = pricingDetails[i];
+
 		agentsList = pricingOption.agents;
 		if (agentsList.length >= 1) {
 			agent = agentsList[0].name;
@@ -164,15 +167,35 @@ function getPrices(pricingDetails) {
 			}
 		}
 		price = pricingOption.price.amount;
-		pricingArray.push({
-			price: price,
-			agent: agent,
-			rating: rating,
-		});
+
+		if (price !== undefined) {
+			pricingArray.push({
+				price: price,
+				agent: agent,
+				rating: rating,
+			});
+		}
 	}
 	return pricingArray.sort((priceA, priceB) =>
 		priceA.price > priceB.price ? 1 : -1
 	);
 }
 
-module.exports = { mockGetFlightData, getFlightData };
+async function recursiveCall(
+	source,
+	destination,
+	pax,
+	departureDate,
+	tempArrivalDate
+) {
+	flights = await getFlightData(
+		source,
+		destination,
+		pax,
+		utils.getDateString(departureDate),
+		utils.getDateString(tempArrivalDate)
+	);
+	return flights;
+}
+
+module.exports = { mockGetFlightData, getFlightData, recursiveCall };

@@ -3,13 +3,14 @@ const utils = require("./utilities/utils");
 const fs = require("fs");
 const { Telegraf, Scenes, session, Markup } = require("telegraf");
 require("dotenv").config({ path: ".env" });
-const dateScenes = require('./scenes/dateScenes');
-const airportScenes = require('./scenes/airportScenes');
+const dateScenes = require("./scenes/dateScenes");
+const airportScenes = require("./scenes/airportScenes");
 const appConstants = require("./constants/constants");
 const durationScene = require("./scenes/durationScene");
 const stopoverScene = require("./scenes/stopoverScene");
 const budgetScene = require("./scenes/budgetScene");
-
+const paxScene = require("./scenes/paxScene");
+const { get } = require("http");
 
 // filter by max price and stopovers
 function filterFlights(allFlights, maxPrice, maxStopovers) {
@@ -45,7 +46,7 @@ bot.start(async (ctx) => {
 
 var CronJob = require("cron").CronJob;
 var job = new CronJob(
-	"* */1 * * *",
+	"* */2 * * *",
 	function () {
 		console.log("");
 	},
@@ -57,89 +58,96 @@ var job = new CronJob(
 // job.start();
 
 // SETTINGS COMMAND
-bot.hears("Settings", async (ctx) => {
+bot.hears("⚙️ Settings", async (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		return await ctx.reply(
-		"Settings",
-		Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
+			"Settings",
+			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
 		);
 	} else {
-	return await ctx.reply(
-		"Cannot amend settings right now",
-		Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize());
+		return await ctx.reply(
+			"Cannot amend settings right now",
+			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
+		);
 	}
 });
 
-
+// FOR TESTING
+bot.hears("Test", async (ctx) => {
+	main(ctx);
+});
 
 const stage = new Scenes.Stage([
-	airportScenes.departureScene, 
-	airportScenes.arrivalScene, 
-	dateScenes.departureDateScene, 
+	airportScenes.departureScene,
+	airportScenes.arrivalScene,
+	dateScenes.departureDateScene,
 	dateScenes.arrivalDateScene,
 	durationScene.durationScene,
 	stopoverScene.stopoverScene,
-	budgetScene.budgetScene
+	budgetScene.budgetScene,
+	paxScene.paxScene,
 ]);
 bot.use(session());
 bot.use(stage.middleware());
 
-
-bot.hears("Departure Airport", (ctx) => {
+bot.hears("🛫 Departure Airport", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("DepartureScene");
 	}
 });
 
-bot.hears("Arrival Airport", (ctx) => {
+bot.hears("🛬 Arrival Airport", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("ArrivalScene");
 	}
 });
 
-bot.hears("Departure Date", (ctx) => {
+bot.hears("📆 Departure Date", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("DepartureDateScene");
 	}
 });
 
-bot.hears("Arrival Date", (ctx) => {
+bot.hears("📆 Arrival Date", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("ArrivalDateScene");
 	}
 });
 
-bot.hears("Set Duration", (ctx) => {
+bot.hears("⌛ Days", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("DurationScene");
 	}
 });
 
-bot.hears("Set Stopovers", (ctx) => {
+bot.hears("🛑 Stopovers", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("StopoverScene");
 	}
 });
 
-bot.hears("Set Budget", (ctx) => {
+bot.hears("💰 Budget", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("BudgetScene");
 	}
 });
 
-bot.hears("Cancel", (ctx) => {
+bot.hears("🧍‍♂️ Number of Travellers", (ctx) => {
+	if (utils.isAllowedSetting(ctx)) {
+		ctx.scene.enter("PaxScene");
+	}
+});
+
+bot.hears("❌ Cancel", (ctx) => {
 	utils.cancelProcess(ctx);
-	
 });
 
-
-bot.hears("Price Summary", (ctx) => {
-	main(ctx);
-	
+bot.hears("🗒️ Trip Summary", (ctx) => {
+	getSummary(ctx);
+	// main(ctx);
 });
 
-function main(context) {
-
+async function main(context) {
 	const stopovers = utils.getState("stopovers");
 	const departureDateStr = utils.getState("departure");
 	const arrivalDateStr = utils.getState("arrival");
@@ -147,6 +155,7 @@ function main(context) {
 	const budget = utils.getState("budget");
 	const source = utils.getState("from");
 	const destination = utils.getState("to");
+	const pax = utils.getState("pax");
 
 	// Represents the bounds of the users desired travel window
 	var departureDate = new Date(departureDateStr);
@@ -154,164 +163,219 @@ function main(context) {
 
 	// Represents the arrival date on which the trip ends after taking
 	// into account some departure date + trip length
-	var tempArrivalDate = departureDate.addDays(tripLength)
+	var tempArrivalDate = departureDate.addDays(tripLength);
 
 	var results = [];
 
 	console.log("flight bounds");
 	console.log(departureDate.toLocaleDateString());
 	console.log(tempArrivalDate.toLocaleDateString());
+	console.log(pax);
 
-	// while (tempArrivalDate <= arrivalDate) {
-	// 	//searchFlights(stopovers, source, destination, departureDate, tempArrivalDate);
-	// 	//pass date string in
-	// 	const allFlights = networkClient.mockGetFlightData();
-	// 	const filteredFlights = filterFlights(allFlights, budget, stopovers);
-	// 	results.push(...filteredFlights);
-	// 	departureDate = departureDate.addDays(1);
-	// 	tempArrivalDate = tempArrivalDate.addDays(1);
-	// }
+	while (tempArrivalDate <= arrivalDate) {
+		// const allFlights = await networkClient.getFlightData(
+		// 	source,
+		// 	destination,
+		// 	pax,
+		// 	utils.getDateString(departureDate),
+		// 	utils.getDateString(tempArrivalDate)
+		// );
 
-	test1 = {
-		"deeplink": "https://www.skyscanner.net/transport/flights/sin/hba/221210/221220/config/16292-2212100040--31757,-32166-1-12084-2212101815|12084-2212200855--32166,-31757-1-16292-2212201830?adults=3&adultsv2=3&cabinclass=economy&children=0&childrenv2=&destinationentityid=27542001&originentityid=27546111&inboundaltsenabled=false&infants=0&outboundaltsenabled=false&preferdirects=false&ref=home&rtn=1",
-		"pricing": [
-		  {
-			"price": 5336,
-			"agent": "Kiwi.com",
-			"rating": 3.4
-		  }
-		],
-		"to": {
-		  "segments": 2,
-		  "stopovers": [
-			"Melbourne Tullamarine Airport (MEL)"
-		  ],
-		  "flights": [
-			{
-			  "airline": "Scoot",
-			  "number": "TR18",
-			  "from": "Singapore Changi Airport (SIN)",
-			  "to": "Melbourne Tullamarine Airport (MEL)",
-			  "depart": "2022-12-09T16:40:00.000Z",
-			  "arrive": "2022-12-10T03:30:00.000Z"
-			},
-			{
-			  "airline": "Jetstar",
-			  "number": "JQ711",
-			  "from": "Melbourne Tullamarine Airport (MEL)",
-			  "to": "Hobart Airport (HBA)",
-			  "depart": "2022-12-10T09:00:00.000Z",
-			  "arrive": "2022-12-10T10:15:00.000Z"
-			}
-		  ]
-		},
-		"back": {
-		  "segments": 2,
-		  "stopovers": [
-			"Melbourne Tullamarine Airport (MEL)"
-		  ],
-		  "flights": [
-			{
-			  "airline": "Jetstar",
-			  "number": "JQ702",
-			  "from": "Hobart Airport (HBA)",
-			  "to": "Melbourne Tullamarine Airport (MEL)",
-			  "depart": "2022-12-20T00:55:00.000Z",
-			  "arrive": "2022-12-20T02:15:00.000Z"
-			},
-			{
-			  "airline": "Scoot",
-			  "number": "TR19",
-			  "from": "Melbourne Tullamarine Airport (MEL)",
-			  "to": "Singapore Changi Airport (SIN)",
-			  "depart": "2022-12-20T05:35:00.000Z",
-			  "arrive": "2022-12-20T10:30:00.000Z"
-			}
-		  ]
+		const allFlights = await networkClient.recursiveCall(
+			source,
+			destination,
+			pax,
+			departureDate,
+			tempArrivalDate
+		);
+
+		console.log(allFlights);
+
+		console.log(`${allFlights.length} flights found`);
+
+		// pass date string in
+		const filteredFlights = filterFlights(allFlights, budget, stopovers);
+
+		console.log(`${filteredFlights.length} matching your budget`);
+		results.push(...filteredFlights);
+		departureDate = departureDate.addDays(1);
+		tempArrivalDate = tempArrivalDate.addDays(1);
+	}
+
+	var message = "";
+	if (results.length > 0) {
+		if (results.length == 1) {
+			message = `Yay! I found ${results.length} flight under your budget!😄 Here are the top 3 results.`;
+		} else {
+			message = `Yay! I found ${results.length} flights under your budget!😄 Here are the top 3 results.`;
 		}
-	  };
-	console.log("done");
+	} else {
+		message = `No flights found 😔`;
+	}
 
-	msg = displayFlightInformation(test1)
+	context.telegram.sendMessage(context.message.chat.id, message, {
+		parse_mode: "Markdown",
+	});
 
-	context.telegram.sendMessage(
-		context.message.chat.id, msg, { parse_mode: 'Markdown' });
-
+	setTimeout(() => sendIndivFlightMsgs(results, context), 2000);
 }
 
 function displayFlightInformation(flightObj) {
-
 	const firstLeg = flightObj.to;
-	const segments = firstLeg.segments;
-	const stopovers = firstLeg.stopovers;
-	const flights = firstLeg.flights;
+	const secondLeg = flightObj.back;
+	const segments1 = firstLeg.segments;
+	const segments2 = secondLeg.segments;
+	const stopovers1 = firstLeg.stopovers;
+	const stopovers2 = secondLeg.stopovers;
+	const flights1 = firstLeg.flights;
+	const flights2 = secondLeg.flights;
+	const pax = utils.getState("pax");
 
+	const lowestPrice = flightObj.pricing[0];
+	const agent = lowestPrice.agent;
+	const price = Math.round(lowestPrice.price / pax);
+	const rating = lowestPrice.rating;
 
-	const source = flights[0].from;
-	const destination = flights[segments - 1].to;
+	var mainHeader = `*✈️ Flight Information ✈️\n\n*Lowest Price: \$${price}/pax\nAgent: ${agent}\nRating: ${utils.getRatingStr(
+		rating
+	)}`;
 
-	const header1 = `🟢 *Outgoing:* ${source} to ${destination} 🛫`;
-	let stopoverDetails = "";
+	const source1 = flights1[0].from;
+	const destination1 = flights1[segments1 - 1].to;
 
-	if (stopovers.length == 0) {
-		stopoverDetails = "This is a direct flight! 🎉";
-	} else if (stopovers.length == 1) {
-		stopoverDetails = "⏰ Stopover at ";
+	const header1 = `🟢 *Outgoing Flight:*\n\n${source1} to ${destination1} 🛫`;
+	let stopoverDetails1 = "";
+
+	if (stopovers1.length == 0) {
+		stopoverDetails1 = "This is a direct flight! 🎉";
+	} else if (stopovers1.length == 1) {
+		stopoverDetails1 = "⏰ Stopover at ";
 	} else {
-		stopoverDetails = "⏰ Stopovers at ";
+		stopoverDetails1 = "⏰ Stopovers at ";
 	}
 
-	stopovers.forEach((item, index) => {
-		if (index === stopovers.length - 2) {
-			stopoverDetails += item + ', and '
-		} else if (index === stopovers.length - 1) {
-			stopoverDetails += item
+	stopovers1.forEach((item, index) => {
+		if (index === stopovers1.length - 2) {
+			stopoverDetails1 += item + ", and ";
+		} else if (index === stopovers1.length - 1) {
+			stopoverDetails1 += item;
 		} else {
-			stopoverDetails += (item + ', ')
+			stopoverDetails1 += item + ", ";
 		}
-	})
-	
-	const firstLegText = `${header1}\n\n${stopoverDetails}`;
-	
+	});
+
+	const firstLegText = `${header1}\n\n${stopoverDetails1}`;
+
 	var flightSegments1 = "";
 
-	for (i = 0; i < segments; i++) {
-		const flight = flights[i];
-		subHeader = `${flight.from} to ${flight.to}:`;
-		airline = `✈️ *${flight.airline} ${flight.number}*`;
-		departing = `${utils.formatDate(flight.depart)}`;
-		arriving = `${utils.formatDate(flight.arrive)}`;
+	for (i = 0; i < segments1; i++) {
+		const flight1 = flights1[i];
+		subHeader = `${flight1.from} to ${flight1.to}:`;
+		airline = `✈️  *${flight1.airline} ${flight1.number}*`;
+		departing = `${utils.formatDate(flight1.depart)}`;
+		arriving = `${utils.formatDate(flight1.arrive)}`;
 
-		flightSegments1 += (`\n\n${subHeader}\n\n    ${airline}\n    🛫 *Depart ${departing}\n    🛬 Arrive ${arriving}*`)
+		flightSegments1 += `\n\n${subHeader}\n\n    ${airline}\n    🛫  *Departs ${departing}\n    🛬  Arrives ${arriving}*`;
 	}
 
 	firstLegMessage = `${firstLegText}\n\n*Here are the details:*${flightSegments1}`;
 
+	const source2 = flights2[0].from;
+	const destination2 = flights2[segments2 - 1].to;
 
-	const header2 = `🔴 *Incoming:* ${destination} to ${source} 🛬`;
+	const header2 = `🔴 *Incoming Flight:*\n\n${destination2} to ${source2} 🛬`;
 
-	const secondLegText = `${header2}\n\n${stopoverDetails}`;
-	
-	var flightSegments2 = "";
+	let stopoverDetails2 = "";
 
-	for (i = 0; i < segments; i++) {
-		const flight = flights[i];
-		subHeader = `${flight.from} to ${flight.to}:`;
-		airline = `✈️ *${flight.airline} ${flight.number}*`;
-		departing = `${utils.formatDate(flight.depart)}`;
-		arriving = `${utils.formatDate(flight.arrive)}`;
-
-		flightSegments2 += (`\n\n${subHeader}\n\n    ${airline}\n    🛫 *Depart ${departing}\n    🛬 Arrive ${arriving}*`)
+	if (stopovers2.length == 0) {
+		stopoverDetails2 = "This is a direct flight! 🎉";
+	} else if (stopovers2.length == 1) {
+		stopoverDetails2 = "⏰ Stopover at ";
+	} else {
+		stopoverDetails2 = "⏰ Stopovers at ";
 	}
 
-	secondLegMessage = `${secondLegText}\n\n*Here are the details:*${flightSegments1}`;
+	stopovers2.forEach((item, index) => {
+		if (index === stopovers2.length - 2) {
+			stopoverDetails2 += item + ", and ";
+		} else if (index === stopovers2.length - 1) {
+			stopoverDetails2 += item;
+		} else {
+			stopoverDetails2 += item + ", ";
+		}
+	});
 
+	const secondLegText = `${header2}\n\n${stopoverDetails2}`;
 
-	return firstLegMessage + "\n\n\n\n" + secondLegMessage;
+	var flightSegments2 = "";
 
+	for (i = 0; i < segments2; i++) {
+		const flight2 = flights2[i];
+		subHeader = `${flight2.from} to ${flight2.to}:`;
+		airline = `✈️  *${flight2.airline} ${flight2.number}*`;
+		departing = `${utils.formatDate(flight2.depart)}`;
+		arriving = `${utils.formatDate(flight2.arrive)}`;
 
+		flightSegments2 += `\n\n${subHeader}\n\n    ${airline}\n    🛫  *Depart ${departing}\n    🛬  Arrive ${arriving}*`;
+	}
+
+	secondLegMessage = `${secondLegText}\n\n*Here are the details!*${flightSegments2}`;
+
+	footer = "⬇️ Click here to view more details ⬇️";
+
+	return `${mainHeader}\n\n${firstLegMessage}\n\n\n\n${secondLegMessage}\n\n${footer}`;
 }
 
+function sendIndivFlightMsgs(results, context) {
+	results.sort((flightA, flightB) =>
+		flightA.pricing[0].price > flightB.pricing[0].price ? 1 : -1
+	);
+
+	for (var i = 0; i < 3; i++) {
+		const deeplink = results[i].deeplink;
+
+		const options = {
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{
+							text: "Go to Skyscanner",
+							url: deeplink,
+						},
+					],
+				],
+			},
+			parse_mode: "Markdown",
+		};
+
+		context.telegram.sendMessage(
+			context.message.chat.id,
+			displayFlightInformation(results[i]),
+			options
+		);
+	}
+}
+
+function getSummary(context) {
+	const stopovers = utils.getState("stopovers");
+	const departureDateStr = utils.getState("departure");
+	const arrivalDateStr = utils.getState("arrival");
+	const tripLength = utils.getState("duration");
+	const budget = utils.getState("budget");
+	const source = utils.getState("from");
+	const destination = utils.getState("to");
+	const pax = utils.getState("pax");
+
+	summary = `*Trip Summary*\n\n✈️  *Trip:* ${source} - ${destination}\n\n🛫  *Date of departure:* ${utils.formatDate(
+		departureDateStr
+	)}\n\n🛬  *Date of arrival:* ${utils.formatDate(
+		arrivalDateStr
+	)}\n\n💸  *Budget:* \$${budget}\n\n🧍  *Number of travellers:* ${pax} persons\n\n⌛  *Trip Length:* ${tripLength} days\n\n🛑  *Maximum stopovers:* ${stopovers}`;
+
+	context.telegram.sendMessage(context.message.chat.id, summary, {
+		parse_mode: "Markdown",
+	});
+}
 
 bot.launch();
 

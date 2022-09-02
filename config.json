@@ -1,10 +1,11 @@
 {
-  "departure": "2022-12-25",
-  "arrival": "2023-01-09",
-  "stopovers": 8,
-  "duration": 5,
-  "from": "BLQ",
-  "to": "AAT",
+  "departure": "2022-12-20",
+  "arrival": "2023-01-04",
+  "stopovers": 2,
+  "duration": 10,
+  "from": "SIN",
+  "to": "HBA",
   "isSetting": null,
-  "budget": 45
+  "budget": 5600,
+  "pax": 3
 }

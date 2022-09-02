@@ -1,20 +1,19 @@
 const fs = require("fs");
 
-
-const mainKeyboard = [["Price Summary", "Settings"]];
+const mainKeyboard = [["🗒️ Trip Summary", "⚙️ Settings"], ["Test"]];
 
 const settingsKeyboard = [
-	["Departure Airport", "Arrival Airport"],
-	["Departure Date", "Arrival Date"],
-	["Set Duration",  "Set Stopovers", "Set Budget"],
-	["Cancel"],
+	["🧍‍♂️ Number of Travellers"],
+	["🛫 Departure Airport", "🛬 Arrival Airport"],
+	["📆 Departure Date", "📆 Arrival Date"],
+	["⌛ Days", "🛑 Stopovers", "💰 Budget"],
+	["❌ Cancel"],
 ];
 
 const airportsList = JSON.parse(fs.readFileSync("./constants/airports.json"));
 
-
 module.exports = {
-    mainKeyboard: mainKeyboard,
-    settingsKeyboard: settingsKeyboard,
-    airportsList: airportsList
+	mainKeyboard: mainKeyboard,
+	settingsKeyboard: settingsKeyboard,
+	airportsList: airportsList,
 };

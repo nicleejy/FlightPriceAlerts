@@ -1,7 +1,6 @@
-const {Scenes, Markup } = require("telegraf");
+const { Scenes, Markup } = require("telegraf");
 const utils = require("../utilities/utils");
 const appConstants = require("../constants/constants");
-
 
 const departureScene = new Scenes.WizardScene(
 	"DepartureScene",
@@ -38,7 +37,7 @@ const departureScene = new Scenes.WizardScene(
 	},
 	async (ctx) => {
 		input = ctx.message.text;
-		
+
 		airportCodeArr = utils.getSpecificAirport(input);
 
 		if (input == "Cancel") {
@@ -64,7 +63,7 @@ const arrivalScene = new Scenes.WizardScene(
 	"ArrivalScene",
 	(ctx) => {
 		ctx.reply(
-			"Type in a place", 
+			"Type in a place",
 			Markup.keyboard([["Cancel"]])
 				.oneTime()
 				.resize()
@@ -92,7 +91,7 @@ const arrivalScene = new Scenes.WizardScene(
 	},
 	async (ctx) => {
 		input = ctx.message.text;
-		
+
 		airportCodeArr = utils.getSpecificAirport(input);
 
 		if (input == "Cancel") {
@@ -101,7 +100,6 @@ const arrivalScene = new Scenes.WizardScene(
 		}
 
 		if (airportCodeArr.length >= 1) {
-	
 			utils.updateAirportSettings(false, airportCodeArr);
 
 			ctx.reply(
@@ -115,6 +113,6 @@ const arrivalScene = new Scenes.WizardScene(
 );
 
 module.exports = {
-    arrivalScene: arrivalScene,
-    departureScene: departureScene
+	arrivalScene: arrivalScene,
+	departureScene: departureScene,
 };
