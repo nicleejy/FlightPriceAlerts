@@ -10,7 +10,6 @@ const durationScene = require("./scenes/durationScene");
 const stopoverScene = require("./scenes/stopoverScene");
 const budgetScene = require("./scenes/budgetScene");
 const paxScene = require("./scenes/paxScene");
-const { get } = require("http");
 
 // filter by max price and stopovers
 function filterFlights(allFlights, maxPrice, maxStopovers) {
@@ -60,14 +59,14 @@ var job = new CronJob(
 
 // SETTINGS COMMAND
 bot.hears("⚙️ Settings", async (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		return await ctx.reply(
 			"⚙️ Settings",
 			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
 		);
 	} else {
 		return await ctx.reply(
-			"Cannot amend settings right now",
+			"Another process is ongoing, please wait! ⚠️",
 			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
 		);
 	}
@@ -75,7 +74,7 @@ bot.hears("⚙️ Settings", async (ctx) => {
 
 // FOR TESTING
 bot.hears("Check Prices", async (ctx) => {
-	if (!utils.getState("isBusy")) {
+	if (!utils.getState("isBusy") && utils.getState("isSetting") === null) {
 		utils.updateBusyState(true);
 		ctx.telegram.sendMessage(
 			ctx.message.chat.id,
@@ -84,8 +83,7 @@ bot.hears("Check Prices", async (ctx) => {
 				parse_mode: "Markdown",
 			}
 		);
-		await main(ctx);
-		utils.updateBusyState(false);
+		main(ctx);
 	} else {
 		ctx.telegram.sendMessage(
 			ctx.message.chat.id,
@@ -236,6 +234,7 @@ async function main(context) {
 					parse_mode: "Markdown",
 				}
 			);
+			utils.updateBusyState(false);
 			return;
 		}
 
@@ -296,6 +295,7 @@ async function main(context) {
 	if (results.length != 0) {
 		setTimeout(() => sendIndivFlightMsgs(results, context), 2000);
 	}
+	utils.updateBusyState(false);
 }
 
 function displayFlightInformation(flightObj) {
