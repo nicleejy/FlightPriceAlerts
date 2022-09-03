@@ -6,7 +6,7 @@ const durationScene = new Scenes.WizardScene(
 	"DurationScene",
 	(ctx) => {
 		ctx.reply(
-			"number of days of the trip",
+			"How many days long is your trip?",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -34,17 +34,19 @@ const durationScene = new Scenes.WizardScene(
 			const diffDays = Math.round(Math.abs((from - to) / oneDay));
 
 			if (value <= 0 || diffDays < value) {
-				ctx.reply("invalid duration");
+				ctx.reply(
+					"Please key in a number of days safely within your specified travel window."
+				);
 				return;
 			}
 			utils.updateDurationSettings(value);
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Successfully updated trip length to ${value} days!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid duration");
+			ctx.reply("Hmm, I was not able to understand this. Please try again.");
 			return;
 		}
 	}

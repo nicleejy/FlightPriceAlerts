@@ -5,7 +5,7 @@ const mainKeyboard = [["🗒️ Trip Summary", "⚙️ Settings"], ["Test"]];
 const settingsKeyboard = [
 	["🧍‍♂️ Number of Travellers"],
 	["🛫 Departure Airport", "🛬 Arrival Airport"],
-	["📆 Departure Date", "📆 Arrival Date"],
+	["📆 Earliest Departure Date", "📆 Latest Arrival Date"],
 	["⌛ Days", "🛑 Stopovers", "💰 Budget"],
 	["❌ Cancel"],
 ];

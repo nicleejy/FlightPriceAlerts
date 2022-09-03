@@ -39,13 +39,12 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 // START COMMAND
 bot.start(async (ctx) => {
 	return await ctx.reply(
-		"Hello!",
+		"Hello Advocado Films! To check flight prices, use the Settings menu to input your trip details. When completed, simply click Check Prices to load flight information.",
 		Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 	);
 });
 
 var CronJob = require("cron").CronJob;
-
 
 var job = new CronJob(
 	"* */2 * * *",
@@ -63,7 +62,7 @@ var job = new CronJob(
 bot.hears("⚙️ Settings", async (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		return await ctx.reply(
-			"Settings",
+			"⚙️ Settings",
 			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
 		);
 	} else {
@@ -75,7 +74,7 @@ bot.hears("⚙️ Settings", async (ctx) => {
 });
 
 // FOR TESTING
-bot.hears("Test", async (ctx) => {
+bot.hears("Check Prices", async (ctx) => {
 	main(ctx);
 });
 
@@ -89,6 +88,7 @@ const stage = new Scenes.Stage([
 	budgetScene.budgetScene,
 	paxScene.paxScene,
 ]);
+
 bot.use(session());
 bot.use(stage.middleware());
 
@@ -104,13 +104,13 @@ bot.hears("🛬 Arrival Airport", (ctx) => {
 	}
 });
 
-bot.hears("📆 Departure Date", (ctx) => {
+bot.hears("📆 Earliest Departure Date", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("DepartureDateScene");
 	}
 });
 
-bot.hears("📆 Arrival Date", (ctx) => {
+bot.hears("📆 Latest Arrival Date", (ctx) => {
 	if (utils.isAllowedSetting(ctx)) {
 		ctx.scene.enter("ArrivalDateScene");
 	}
@@ -146,7 +146,6 @@ bot.hears("❌ Cancel", (ctx) => {
 
 bot.hears("🗒️ Trip Summary", (ctx) => {
 	getSummary(ctx);
-	// main(ctx);
 });
 
 async function main(context) {
@@ -180,15 +179,25 @@ async function main(context) {
 
 		var allFlights = [];
 
-		allFlights = await networkClient.queryUntilCompletion(source, destination, pax, utils.getDateString(departureDate), utils.getDateString(arrivalDate));
+		allFlights = await networkClient.queryUntilCompletion(
+			source,
+			destination,
+			pax,
+			utils.getDateString(departureDate),
+			utils.getDateString(arrivalDate)
+		);
 
 		if (allFlights == false) {
-			context.telegram.sendMessage(context.message.chat.id, "An error occurred when attempting to retrieve data from SkyScannerAPI", {
-				parse_mode: "Markdown",
-			});
+			context.telegram.sendMessage(
+				context.message.chat.id,
+				"An error occurred when attempting to retrieve data from SkyScanner 😔",
+				{
+					parse_mode: "Markdown",
+				}
+			);
 			return;
 		}
-		
+
 		console.log(`${allFlights.length} flights found`);
 
 		// pass date string in
@@ -198,7 +207,7 @@ async function main(context) {
 		allData.push(...allFlights);
 
 		if (results.length >= 3) {
-			console.log("Done querying early!");
+			console.log("Done querying early");
 			break;
 		}
 
@@ -206,21 +215,20 @@ async function main(context) {
 		tempArrivalDate = tempArrivalDate.addDays(1);
 	}
 
-	const avgPrice = utils.getAveragePrice(allData);
+	const median = utils.getMedianPrice(allData);
 
 	var message = "";
 	if (results.length > 0) {
 		if (results.length == 1) {
-			message = `Yay! I found ${results.length} flight under your budget!😄 Here are the top 3 results. The average price of your flights is currently around ${avgPrice}.`;
+			message = `Yay! I found ${results.length} flight under your budget!😄\n\nThe median price of your flights is currently around \$${median} SGD. Note that I'll only display the top 3 results.`;
 		} else {
-			message = `Yay! I found ${results.length} flights under your budget!😄 Here are the top 3 results. The average price of your flights is currently around ${avgPrice}.`;
+			message = `Yay! I found ${results.length} flights under your budget!😄\n\nThe median price of your flights is currently around \$${median} SGD. Note that I'll only display the top 3 results.`;
 		}
 	} else {
-
 		if (avgPrice == 0) {
 			message = "No flights found 😔";
 		} else {
-			message = `No flights found 😔 The average price of your flights is currently around ${avgPrice}.`;
+			message = `No flights found 😔\n\nThe median price of your flights is currently around \$${median}. Perhaps you could try setting your budget higher?`;
 		}
 	}
 
@@ -340,12 +348,11 @@ function displayFlightInformation(flightObj) {
 }
 
 function sendIndivFlightMsgs(results, context) {
-
 	results.sort((flightA, flightB) =>
 		flightA.pricing[0].price > flightB.pricing[0].price ? 1 : -1
 	);
 
-	var numResults = (results.length < 3 ? results.length : 3);
+	var numResults = results.length < 3 ? results.length : 3;
 
 	for (var i = 0; i < numResults; i++) {
 		const deeplink = results[i].deeplink;
@@ -382,11 +389,26 @@ function getSummary(context) {
 	const destination = utils.getState("to");
 	const pax = utils.getState("pax");
 
-	summary = `*Trip Summary*\n\n✈️  *Trip:* ${source} - ${destination}\n\n🛫  *Date of departure:* ${utils.formatDate(
-		departureDateStr
-	)}\n\n🛬  *Date of arrival:* ${utils.formatDate(
-		arrivalDateStr
-	)}\n\n💸  *Budget:* \$${budget}\n\n🧍  *Number of travellers:* ${pax} persons\n\n⌛  *Trip Length:* ${tripLength} days\n\n🛑  *Maximum stopovers:* ${stopovers}`;
+	const sourceName = utils.searchByCode(source)[0].name;
+	destName = utils.searchByCode(destination)[0].name;
+
+	const departureDateString = utils
+		.formatDate(departureDateStr)
+		.split(" ")
+		.slice(0, 4)
+		.join(" ");
+
+	const arrivalDateString = utils
+		.formatDate(arrivalDateStr)
+		.split(" ")
+		.slice(0, 4)
+		.join(" ");
+
+	summary = `*Here's your Trip Summary!*\n\n✈️  *Trip:*\n\n${sourceName} to ${destName}\n\n🛫  *Date of departure:*\n\n${departureDateString}\n\n🛬  *Date of arrival:*\n\n${arrivalDateString}\n\n💸  *Budget:* \$${budget} SGD\n\n*Number of travellers:*\n\n${pax} person${
+		pax == 1 ? "" : "s"
+	}\n\n⌛  *Trip Length:* ${tripLength} day${
+		tripLength == 1 ? "" : "s"
+	}\n\n🛑  *Maximum stopovers:* ${stopovers}`;
 
 	context.telegram.sendMessage(context.message.chat.id, summary, {
 		parse_mode: "Markdown",

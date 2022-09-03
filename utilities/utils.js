@@ -73,7 +73,7 @@ function isAllowedSetting(context) {
 function cancelProcess(context) {
 	updateSetting("isSetting", null);
 	context.reply(
-		"okay",
+		"Goodbye!",
 		Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 	);
 }
@@ -90,9 +90,9 @@ function filterAirports(searchInput) {
 	return airportMarkup;
 }
 
-function getSpecificAirport(input) {
+function searchByName(name) {
 	const airportCodeList = appConstants.airportsList.filter(function (airport) {
-		return airport.name == input;
+		return airport.name == name;
 	});
 	return airportCodeList;
 }
@@ -132,6 +132,12 @@ function isValidDate(input) {
 Date.prototype.addDays = function (days) {
 	var date = new Date(this.valueOf());
 	date.setDate(date.getDate() + days);
+	return date;
+};
+
+Date.prototype.subtractDays = function (days) {
+	var date = new Date(this.valueOf());
+	date.setDate(date.getDate() - days);
 	return date;
 };
 
@@ -209,15 +215,49 @@ function getRatingStr(rating) {
 	return ratingString;
 }
 
-function getAveragePrice(flightsArr) {
-	const sum = flightsArr.reduce(function (a, b) {
-		return a + b.pricing[0].price;
-	}, 0);
-
+function getMedianPrice(flightsArr) {
 	if (flightsArr.length == 0) {
 		return 0;
 	}
-	return Math.round(sum / flightsArr.length);
+
+	function median(values) {
+		if (values.length === 0) throw new Error("No inputs");
+
+		values.sort(function (a, b) {
+			return a - b;
+		});
+
+		var half = Math.floor(values.length / 2);
+
+		if (values.length % 2) return values[half];
+		return (values[half - 1] + values[half]) / 2.0;
+	}
+
+	var prices = [];
+	for (var i = 0; i < flightsArr.length; i++) {
+		prices.push(flightsArr[i].pricing[0].price);
+	}
+
+	return median(prices);
+}
+
+function writeToFile(objectList, filename) {
+	const jsonData = JSON.stringify({ res: objectList }, null, 2);
+
+	fs.writeFileSync(filename, jsonData, function (writeError) {
+		if (writeError) {
+			console.log(writeError);
+		} else {
+			console.log("Success");
+		}
+	});
+}
+
+function searchByCode(code) {
+	const airportCodeList = appConstants.airportsList.filter(function (airport) {
+		return airport.code == code;
+	});
+	return airportCodeList;
 }
 
 module.exports = {
@@ -229,7 +269,8 @@ module.exports = {
 	isValidDate,
 	cancelProcess,
 	filterAirports,
-	getSpecificAirport,
+	searchByName,
+	searchByCode,
 	updateAirportSettings,
 	updateDateSettings,
 	updateDurationSettings,
@@ -238,5 +279,6 @@ module.exports = {
 	formatDate,
 	getRatingStr,
 	updatePaxSettings,
-	getAveragePrice
+	getMedianPrice,
+	writeToFile,
 };

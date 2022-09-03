@@ -6,7 +6,7 @@ const arrivalDateScene = new Scenes.WizardScene(
 	"ArrivalDateScene",
 	(ctx) => {
 		ctx.reply(
-			"Type in a date in the right format",
+			"Which date is the latest you can return from the trip? (dd/mm/yyyy)",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -25,18 +25,18 @@ const arrivalDateScene = new Scenes.WizardScene(
 		if (utils.isValidDate(input)) {
 			const date = utils.parseDate(input);
 			if (new Date(utils.getState("departure")) > date) {
-				// if departure date is later than set date
-				ctx.reply("This date should be later than the departure date");
-				return;
+				// if departure date is later than arrival date,
+				// set departure date to one day before arrival
+				utils.updateDateSettings(true, date.subtractDays(1));
 			}
 			utils.updateDateSettings(false, date);
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Latest arrival date successfully updated to ${input}!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid date");
+			ctx.reply("Hmm, I was not able to understand this. Please try again.");
 			return;
 		}
 	}
@@ -46,7 +46,7 @@ const departureDateScene = new Scenes.WizardScene(
 	"DepartureDateScene",
 	(ctx) => {
 		ctx.reply(
-			"Type in a date in the right format",
+			"Which date is the earliest you can leave for the trip? (dd/mm/yyyy)",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -66,19 +66,19 @@ const departureDateScene = new Scenes.WizardScene(
 			const date = utils.parseDate(input);
 
 			if (new Date(utils.getState("arrival")) < date) {
-				// if arrival date is earlier than set date
-				ctx.reply("This date should be earlier than the arrival date");
-				return;
+				// if arrival date is earlier than departure date
+				// set arrival date to one after departure
+				utils.updateDateSettings(false, date.addDays(1));
 			}
 
 			utils.updateDateSettings(true, date);
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Earliest departure date successfully updated to ${input}!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid date");
+			ctx.reply("Hmm, I was not able to understand this. Please try again.");
 			return;
 		}
 	}

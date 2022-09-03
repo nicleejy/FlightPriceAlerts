@@ -6,7 +6,7 @@ const stopoverScene = new Scenes.WizardScene(
 	"StopoverScene",
 	(ctx) => {
 		ctx.reply(
-			"maximum number of stopovers",
+			"What is the maximum number of stopovers?",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -26,18 +26,18 @@ const stopoverScene = new Scenes.WizardScene(
 
 		if (input.match(regex)) {
 			const value = parseInt(input);
-			if (value <= 0) {
-				ctx.reply("invalid number");
+			if (value < 0) {
+				ctx.reply("Please key in a valid number of stopovers.");
 				return;
 			}
 			utils.updateStopoverSettings(value);
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Successfully updated number of stopovers to ${value}!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid number");
+			ctx.reply("Hmm, I was not able to understand this. Please try again.");
 			return;
 		}
 	}

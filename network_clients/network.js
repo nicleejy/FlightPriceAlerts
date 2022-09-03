@@ -7,14 +7,23 @@ require("dotenv").config({ path: ".env" });
 const token = process.env.API_KEY;
 const host = process.env.HOST;
 
-
-async function queryUntilCompletion(origin, dest, pax, departureDate, returnDate) {
-
+async function queryUntilCompletion(
+	origin,
+	dest,
+	pax,
+	departureDate,
+	returnDate
+) {
 	var flightData = [];
 
 	try {
-		var flightData = await getFlightData(origin, dest, pax, departureDate, returnDate);
-
+		var flightData = await getFlightData(
+			origin,
+			dest,
+			pax,
+			departureDate,
+			returnDate
+		);
 	} catch (error) {
 		console.log("Error has occured");
 		console.log(error);
@@ -23,23 +32,21 @@ async function queryUntilCompletion(origin, dest, pax, departureDate, returnDate
 
 	while (flightData.context.status != "complete") {
 		console.log("Not complete, requerying!");
-		await new Promise(resolve => setTimeout(resolve, 30000));
-		flightData = await getFlightData(origin, dest, pax, departureDate, returnDate);
+		await new Promise((resolve) => setTimeout(resolve, 40000));
+		flightData = await getFlightData(
+			origin,
+			dest,
+			pax,
+			departureDate,
+			returnDate
+		);
 	}
 
 	console.log("completed query!");
 	const results = flightData.itineraries.results;
 	const allFlights = parseFlightData(results);
 
-	const jsonData = JSON.stringify({ res: allFlights }, null, 2);
-
-	fs.writeFileSync("processed.json", jsonData, function (writeError) {
-		if (writeError) {
-			console.log(writeError);
-		} else {
-			console.log("Success");
-		}
-	});
+	// utils.writeToFile(allFlights, "processed.json")
 
 	return allFlights;
 }
@@ -72,9 +79,7 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 	const response = await axios.request(options);
 	var data = response.data;
 	return data;
-
 }
-
 
 // Mimicks API call to save queries
 function mockGetFlightData() {
@@ -83,14 +88,7 @@ function mockGetFlightData() {
 	const results = data.itineraries.results;
 	const allFlights = parseFlightData(results);
 
-	const jsonData = JSON.stringify({ res: allFlights }, null, 2);
-	fs.writeFile("cleaned.json", jsonData, function (writeError) {
-		if (writeError) {
-			console.log(writeError);
-		} else {
-			console.log("Success");
-		}
-	});
+	utils.writeToFile(allFlights, "cleaned.json");
 	return allFlights;
 }
 
@@ -102,7 +100,6 @@ function parseFlightData(itineraryResults) {
 		const legs = itineraryResults[i].legs;
 
 		// if there is insufficient data for to and from
-
 		if (legs.length < 2) {
 			continue;
 		}
@@ -128,7 +125,7 @@ function parseFlightData(itineraryResults) {
 	);
 }
 
-// Organises the flight segements for any particular leg of the trip
+// Organises the flight segments for any particular leg of the trip
 // Eg on a flight from SG to NZ, a stopover at Canberra splits the leg into 2 segments
 function getFlightSegments(leg) {
 	const segmentDetails = leg.segments;
@@ -198,4 +195,4 @@ function getPrices(pricingDetails) {
 	);
 }
 
-module.exports = { mockGetFlightData, getFlightData , queryUntilCompletion};
+module.exports = { mockGetFlightData, getFlightData, queryUntilCompletion };

@@ -6,7 +6,7 @@ const departureScene = new Scenes.WizardScene(
 	"DepartureScene",
 	(ctx) => {
 		ctx.reply(
-			"Type in a place",
+			"Which country will you be flying from?",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -25,11 +25,11 @@ const departureScene = new Scenes.WizardScene(
 		airportMarkup = utils.filterAirports(input);
 
 		if (airportMarkup.length == 1) {
-			ctx.reply("no airports found");
+			ctx.reply("I was not able find any location, please try again.");
 			return;
 		} else {
 			ctx.reply(
-				"Select the airport",
+				"Which airport is it?",
 				Markup.keyboard(airportMarkup).oneTime().resize()
 			);
 		}
@@ -38,7 +38,7 @@ const departureScene = new Scenes.WizardScene(
 	async (ctx) => {
 		input = ctx.message.text;
 
-		airportCodeArr = utils.getSpecificAirport(input);
+		airportCodeArr = utils.searchByName(input);
 
 		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
@@ -50,7 +50,7 @@ const departureScene = new Scenes.WizardScene(
 			utils.updateAirportSettings(true, airportCodeArr);
 
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Successfully updated departure airport to ${input}!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
@@ -63,7 +63,7 @@ const arrivalScene = new Scenes.WizardScene(
 	"ArrivalScene",
 	(ctx) => {
 		ctx.reply(
-			"Type in a place",
+			"Which country will you be flying to?",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -79,11 +79,11 @@ const arrivalScene = new Scenes.WizardScene(
 		}
 		airportMarkup = utils.filterAirports(input);
 		if (airportMarkup.length == 1) {
-			ctx.reply("no airports found");
+			ctx.reply("I was not able find any location, please try again.");
 			return;
 		} else {
 			ctx.reply(
-				"Select the airport",
+				"Which airport is it?",
 				Markup.keyboard(airportMarkup).oneTime().resize()
 			);
 		}
@@ -92,7 +92,7 @@ const arrivalScene = new Scenes.WizardScene(
 	async (ctx) => {
 		input = ctx.message.text;
 
-		airportCodeArr = utils.getSpecificAirport(input);
+		airportCodeArr = utils.searchByName(input);
 
 		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
@@ -103,7 +103,7 @@ const arrivalScene = new Scenes.WizardScene(
 			utils.updateAirportSettings(false, airportCodeArr);
 
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Successfully updated arrival airport to ${input}!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();

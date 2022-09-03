@@ -6,7 +6,7 @@ const budgetScene = new Scenes.WizardScene(
 	"BudgetScene",
 	(ctx) => {
 		ctx.reply(
-			"maximum allowed budget",
+			"What is your maximum budget for this trip, including all travellers? (SGD)",
 			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
@@ -27,17 +27,17 @@ const budgetScene = new Scenes.WizardScene(
 		if (input.match(regex)) {
 			const value = parseInt(input);
 			if (value <= 0) {
-				ctx.reply("invalid price");
+				ctx.reply("Please key in a valid budget!");
 				return;
 			}
 			utils.updateBudgetSettings(value);
 			ctx.reply(
-				"Thank you for your replies, well contact your soon",
+				`Budget successfully updated to \$${value} SGD!`,
 				Markup.keyboard(appConstants.mainKeyboard).oneTime().resize()
 			);
 			return ctx.scene.leave();
 		} else {
-			ctx.reply("invalid price");
+			ctx.reply("Hmm, I was not able to understand this. Please try again.");
 			return;
 		}
 	}
