@@ -7,6 +7,9 @@ require("dotenv").config({ path: ".env" });
 const token = process.env.API_KEY;
 const host = process.env.HOST;
 
+
+var data;
+
 async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 	console.log("getting flight data...");
 	const options = {
@@ -35,21 +38,27 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 	try {
 		const response = await axios.request(options);
 		const jsonData = JSON.stringify(response.data, null, 2);
-		fs.writeFile("response.json", jsonData, function (writeError) {
+		fs.writeFileSync("response.json", jsonData, function (writeError) {
 			if (writeError) {
 				console.log(writeError);
 			} else {
 				console.log("Success");
 			}
 		});
-		const data = response.data;
+		data = response.data;
 
 		if (data.context.status != "complete") {
 			console.log("Not complete, requerying!");
-			setTimeout(getFlightData, 20000);
+			await new Promise(resolve => setTimeout(resolve, 12000));
+			data = await getFlightData(origin, dest, pax, departureDate, returnDate);
 		} else {
+			console.log("completed query!");
+			console.log(data);
+			console.log("_________")
 			const results = data.itineraries.results;
 			const allFlights = parseFlightData(results);
+			console.log("all fighta");
+			console.log(allFlights);
 			return allFlights;
 		}
 	} catch (error) {
@@ -57,6 +66,7 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 		console.log(error);
 	}
 }
+
 
 // Mimicks API call to save queries
 function mockGetFlightData() {
@@ -181,14 +191,14 @@ function getPrices(pricingDetails) {
 	);
 }
 
-async function recursiveCall(
+async function getData(
 	source,
 	destination,
 	pax,
 	departureDate,
 	tempArrivalDate
 ) {
-	flights = await getFlightData(
+	var flights = await getFlightData(
 		source,
 		destination,
 		pax,
@@ -198,4 +208,4 @@ async function recursiveCall(
 	return flights;
 }
 
-module.exports = { mockGetFlightData, getFlightData, recursiveCall };
+module.exports = { mockGetFlightData, getFlightData, getData };

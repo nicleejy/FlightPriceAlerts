@@ -173,6 +173,7 @@ async function main(context) {
 	console.log(pax);
 
 	while (tempArrivalDate <= arrivalDate) {
+		console.log("looping");
 		// const allFlights = await networkClient.getFlightData(
 		// 	source,
 		// 	destination,
@@ -181,14 +182,19 @@ async function main(context) {
 		// 	utils.getDateString(tempArrivalDate)
 		// );
 
-		const allFlights = await networkClient.recursiveCall(
+		var allFlights = [];
+
+		console.log("hellooo");
+
+		allFlights = await networkClient.getData(
 			source,
 			destination,
 			pax,
 			departureDate,
 			tempArrivalDate
 		);
-
+		
+		console.log("eeoooo");
 		console.log(allFlights);
 
 		console.log(`${allFlights.length} flights found`);
@@ -217,7 +223,11 @@ async function main(context) {
 		parse_mode: "Markdown",
 	});
 
-	setTimeout(() => sendIndivFlightMsgs(results, context), 2000);
+	if (results.length != 0) {
+		setTimeout(() => sendIndivFlightMsgs(results, context), 2000);
+	}
+
+	
 }
 
 function displayFlightInformation(flightObj) {
@@ -332,6 +342,8 @@ function sendIndivFlightMsgs(results, context) {
 	);
 
 	for (var i = 0; i < 3; i++) {
+
+		console.log(results[i]);
 		const deeplink = results[i].deeplink;
 
 		const options = {
