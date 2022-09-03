@@ -75,6 +75,13 @@ bot.hears("⚙️ Settings", async (ctx) => {
 
 // FOR TESTING
 bot.hears("Check Prices", async (ctx) => {
+	ctx.telegram.sendMessage(
+		context.message.chat.id,
+		"Searching for flights...",
+		{
+			parse_mode: "Markdown",
+		}
+	);
 	main(ctx);
 });
 

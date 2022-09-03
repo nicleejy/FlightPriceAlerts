@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-const mainKeyboard = [["🗒️ Trip Summary", "⚙️ Settings"], ["Test"]];
+const mainKeyboard = [["🗒️ Trip Summary", "⚙️ Settings"], ["Check Prices"]];
 
 const settingsKeyboard = [
 	["🧍‍♂️ Number of Travellers"],
