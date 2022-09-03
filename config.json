@@ -1,12 +1,12 @@
 {
   "departure": "2022-12-25",
   "arrival": "2023-01-09",
-  "stopovers": 2,
+  "stopovers": 1,
   "duration": 10,
   "from": "SIN",
-  "to": "HBA",
+  "to": "HND",
   "isSetting": null,
-  "budget": 1000,
+  "budget": 750,
   "pax": 1,
-  "isBusy": false
+  "isBusy": true
 }
