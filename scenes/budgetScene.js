@@ -7,7 +7,7 @@ const budgetScene = new Scenes.WizardScene(
 	(ctx) => {
 		ctx.reply(
 			"maximum allowed budget",
-			Markup.keyboard([["Cancel"]])
+			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
 		);
@@ -17,7 +17,7 @@ const budgetScene = new Scenes.WizardScene(
 		// validation example
 		const input = ctx.message.text;
 
-		if (input == "Cancel") {
+		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
 			return ctx.scene.leave();
 		}

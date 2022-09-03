@@ -45,6 +45,8 @@ bot.start(async (ctx) => {
 });
 
 var CronJob = require("cron").CronJob;
+
+
 var job = new CronJob(
 	"* */2 * * *",
 	function () {
@@ -166,6 +168,7 @@ async function main(context) {
 	var tempArrivalDate = departureDate.addDays(tripLength);
 
 	var results = [];
+	var allData = [];
 
 	console.log("flight bounds");
 	console.log(departureDate.toLocaleDateString());
@@ -173,50 +176,52 @@ async function main(context) {
 	console.log(pax);
 
 	while (tempArrivalDate <= arrivalDate) {
-		console.log("looping");
-		// const allFlights = await networkClient.getFlightData(
-		// 	source,
-		// 	destination,
-		// 	pax,
-		// 	utils.getDateString(departureDate),
-		// 	utils.getDateString(tempArrivalDate)
-		// );
+		console.log("Checking next travel window!");
 
 		var allFlights = [];
 
-		console.log("hellooo");
+		allFlights = await networkClient.queryUntilCompletion(source, destination, pax, utils.getDateString(departureDate), utils.getDateString(arrivalDate));
 
-		allFlights = await networkClient.getData(
-			source,
-			destination,
-			pax,
-			departureDate,
-			tempArrivalDate
-		);
+		if (allFlights == false) {
+			context.telegram.sendMessage(context.message.chat.id, "An error occurred when attempting to retrieve data from SkyScannerAPI", {
+				parse_mode: "Markdown",
+			});
+			return;
+		}
 		
-		console.log("eeoooo");
-		console.log(allFlights);
-
 		console.log(`${allFlights.length} flights found`);
 
 		// pass date string in
 		const filteredFlights = filterFlights(allFlights, budget, stopovers);
-
 		console.log(`${filteredFlights.length} matching your budget`);
 		results.push(...filteredFlights);
+		allData.push(...allFlights);
+
+		if (results.length >= 3) {
+			console.log("Done querying early!");
+			break;
+		}
+
 		departureDate = departureDate.addDays(1);
 		tempArrivalDate = tempArrivalDate.addDays(1);
 	}
 
+	const avgPrice = utils.getAveragePrice(allData);
+
 	var message = "";
 	if (results.length > 0) {
 		if (results.length == 1) {
-			message = `Yay! I found ${results.length} flight under your budget!😄 Here are the top 3 results.`;
+			message = `Yay! I found ${results.length} flight under your budget!😄 Here are the top 3 results. The average price of your flights is currently around ${avgPrice}.`;
 		} else {
-			message = `Yay! I found ${results.length} flights under your budget!😄 Here are the top 3 results.`;
+			message = `Yay! I found ${results.length} flights under your budget!😄 Here are the top 3 results. The average price of your flights is currently around ${avgPrice}.`;
 		}
 	} else {
-		message = `No flights found 😔`;
+
+		if (avgPrice == 0) {
+			message = "No flights found 😔";
+		} else {
+			message = `No flights found 😔 The average price of your flights is currently around ${avgPrice}.`;
+		}
 	}
 
 	context.telegram.sendMessage(context.message.chat.id, message, {
@@ -226,8 +231,6 @@ async function main(context) {
 	if (results.length != 0) {
 		setTimeout(() => sendIndivFlightMsgs(results, context), 2000);
 	}
-
-	
 }
 
 function displayFlightInformation(flightObj) {
@@ -253,7 +256,7 @@ function displayFlightInformation(flightObj) {
 	const source1 = flights1[0].from;
 	const destination1 = flights1[segments1 - 1].to;
 
-	const header1 = `🟢 *Outgoing Flight:*\n\n${source1} to ${destination1} 🛫`;
+	const header1 = `🟢 *Outgoing Flight* 🟢\n\n${source1} to ${destination1} 🛫`;
 	let stopoverDetails1 = "";
 
 	if (stopovers1.length == 0) {
@@ -288,12 +291,12 @@ function displayFlightInformation(flightObj) {
 		flightSegments1 += `\n\n${subHeader}\n\n    ${airline}\n    🛫  *Departs ${departing}\n    🛬  Arrives ${arriving}*`;
 	}
 
-	firstLegMessage = `${firstLegText}\n\n*Here are the details:*${flightSegments1}`;
+	firstLegMessage = `${firstLegText}\n\n*Details:*${flightSegments1}`;
 
 	const source2 = flights2[0].from;
 	const destination2 = flights2[segments2 - 1].to;
 
-	const header2 = `🔴 *Incoming Flight:*\n\n${destination2} to ${source2} 🛬`;
+	const header2 = `🔴 *Incoming Flight* 🔴\n\n${destination2} to ${source2} 🛬`;
 
 	let stopoverDetails2 = "";
 
@@ -329,7 +332,7 @@ function displayFlightInformation(flightObj) {
 		flightSegments2 += `\n\n${subHeader}\n\n    ${airline}\n    🛫  *Depart ${departing}\n    🛬  Arrive ${arriving}*`;
 	}
 
-	secondLegMessage = `${secondLegText}\n\n*Here are the details!*${flightSegments2}`;
+	secondLegMessage = `${secondLegText}\n\n*Details:*${flightSegments2}`;
 
 	footer = "⬇️ Click here to view more details ⬇️";
 
@@ -337,13 +340,14 @@ function displayFlightInformation(flightObj) {
 }
 
 function sendIndivFlightMsgs(results, context) {
+
 	results.sort((flightA, flightB) =>
 		flightA.pricing[0].price > flightB.pricing[0].price ? 1 : -1
 	);
 
-	for (var i = 0; i < 3; i++) {
+	var numResults = (results.length < 3 ? results.length : 3);
 
-		console.log(results[i]);
+	for (var i = 0; i < numResults; i++) {
 		const deeplink = results[i].deeplink;
 
 		const options = {

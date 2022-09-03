@@ -8,7 +8,41 @@ const token = process.env.API_KEY;
 const host = process.env.HOST;
 
 
-var data;
+async function queryUntilCompletion(origin, dest, pax, departureDate, returnDate) {
+
+	var flightData = [];
+
+	try {
+		var flightData = await getFlightData(origin, dest, pax, departureDate, returnDate);
+
+	} catch (error) {
+		console.log("Error has occured");
+		console.log(error);
+		return false;
+	}
+
+	while (flightData.context.status != "complete") {
+		console.log("Not complete, requerying!");
+		await new Promise(resolve => setTimeout(resolve, 30000));
+		flightData = await getFlightData(origin, dest, pax, departureDate, returnDate);
+	}
+
+	console.log("completed query!");
+	const results = flightData.itineraries.results;
+	const allFlights = parseFlightData(results);
+
+	const jsonData = JSON.stringify({ res: allFlights }, null, 2);
+
+	fs.writeFileSync("processed.json", jsonData, function (writeError) {
+		if (writeError) {
+			console.log(writeError);
+		} else {
+			console.log("Success");
+		}
+	});
+
+	return allFlights;
+}
 
 async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 	console.log("getting flight data...");
@@ -35,36 +69,10 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 		},
 	};
 
-	try {
-		const response = await axios.request(options);
-		const jsonData = JSON.stringify(response.data, null, 2);
-		fs.writeFileSync("response.json", jsonData, function (writeError) {
-			if (writeError) {
-				console.log(writeError);
-			} else {
-				console.log("Success");
-			}
-		});
-		data = response.data;
+	const response = await axios.request(options);
+	var data = response.data;
+	return data;
 
-		if (data.context.status != "complete") {
-			console.log("Not complete, requerying!");
-			await new Promise(resolve => setTimeout(resolve, 12000));
-			data = await getFlightData(origin, dest, pax, departureDate, returnDate);
-		} else {
-			console.log("completed query!");
-			console.log(data);
-			console.log("_________")
-			const results = data.itineraries.results;
-			const allFlights = parseFlightData(results);
-			console.log("all fighta");
-			console.log(allFlights);
-			return allFlights;
-		}
-	} catch (error) {
-		console.log("error occured");
-		console.log(error);
-	}
 }
 
 
@@ -98,7 +106,6 @@ function parseFlightData(itineraryResults) {
 		if (legs.length < 2) {
 			continue;
 		}
-
 		const toLeg = legs[0];
 		const returnLeg = legs[1];
 		const deeplink = itineraryResults[i].deeplink;
@@ -191,21 +198,4 @@ function getPrices(pricingDetails) {
 	);
 }
 
-async function getData(
-	source,
-	destination,
-	pax,
-	departureDate,
-	tempArrivalDate
-) {
-	var flights = await getFlightData(
-		source,
-		destination,
-		pax,
-		utils.getDateString(departureDate),
-		utils.getDateString(tempArrivalDate)
-	);
-	return flights;
-}
-
-module.exports = { mockGetFlightData, getFlightData, getData };
+module.exports = { mockGetFlightData, getFlightData , queryUntilCompletion};

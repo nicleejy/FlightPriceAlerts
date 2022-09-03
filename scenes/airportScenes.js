@@ -7,7 +7,7 @@ const departureScene = new Scenes.WizardScene(
 	(ctx) => {
 		ctx.reply(
 			"Type in a place",
-			Markup.keyboard([["Cancel"]])
+			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
 		);
@@ -17,7 +17,7 @@ const departureScene = new Scenes.WizardScene(
 		// validation example
 		const input = ctx.message.text;
 
-		if (input == "Cancel") {
+		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
 			return ctx.scene.leave();
 		}
@@ -40,7 +40,7 @@ const departureScene = new Scenes.WizardScene(
 
 		airportCodeArr = utils.getSpecificAirport(input);
 
-		if (input == "Cancel") {
+		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
 			return ctx.scene.leave();
 		}
@@ -64,7 +64,7 @@ const arrivalScene = new Scenes.WizardScene(
 	(ctx) => {
 		ctx.reply(
 			"Type in a place",
-			Markup.keyboard([["Cancel"]])
+			Markup.keyboard([["❌ Cancel"]])
 				.oneTime()
 				.resize()
 		);
@@ -73,7 +73,7 @@ const arrivalScene = new Scenes.WizardScene(
 	(ctx) => {
 		// validation example
 		const input = ctx.message.text;
-		if (input == "Cancel") {
+		if (input == "❌ Cancel") {
 			utils.cancelProcess(ctx);
 			return ctx.scene.leave();
 		}
@@ -94,8 +94,8 @@ const arrivalScene = new Scenes.WizardScene(
 
 		airportCodeArr = utils.getSpecificAirport(input);
 
-		if (input == "Cancel") {
-			cancelProcess(ctx);
+		if (input == "❌ Cancel") {
+			utils.cancelProcess(ctx);
 			return ctx.scene.leave();
 		}
 

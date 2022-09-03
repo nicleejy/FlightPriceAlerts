@@ -1,11 +1,11 @@
 {
   "departure": "2022-12-25",
   "arrival": "2023-01-09",
-  "stopovers": 1,
+  "stopovers": 2,
   "duration": 10,
   "from": "SIN",
-  "to": "HND",
+  "to": "CHC",
   "isSetting": null,
-  "budget": 1500,
+  "budget": 2000,
   "pax": 1
 }

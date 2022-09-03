@@ -82,7 +82,7 @@ function filterAirports(searchInput) {
 	const filteredAirports = appConstants.airportsList.filter(function (airport) {
 		return airport.country.toLowerCase().includes(searchInput.toLowerCase());
 	});
-	var airportMarkup = [["Cancel"]];
+	var airportMarkup = [["❌ Cancel"]];
 
 	for (var i = 0; i < filteredAirports.length; i++) {
 		airportMarkup.push([filteredAirports[i].name]);
@@ -209,6 +209,17 @@ function getRatingStr(rating) {
 	return ratingString;
 }
 
+function getAveragePrice(flightsArr) {
+	const sum = flightsArr.reduce(function (a, b) {
+		return a + b.pricing[0].price;
+	}, 0);
+
+	if (flightsArr.length == 0) {
+		return 0;
+	}
+	return Math.round(sum / flightsArr.length);
+}
+
 module.exports = {
 	updateSetting,
 	getState,
@@ -227,4 +238,5 @@ module.exports = {
 	formatDate,
 	getRatingStr,
 	updatePaxSettings,
+	getAveragePrice
 };
