@@ -27,11 +27,10 @@ const durationScene = new Scenes.WizardScene(
 		if (input.match(regex)) {
 			const value = parseInt(input);
 
-			const oneDay = 24 * 60 * 60 * 1000;
-			const from = new Date(utils.getState("departure"));
-			const to = new Date(utils.getState("arrival"));
-
-			const diffDays = Math.round(Math.abs((from - to) / oneDay));
+			const diffDays = utils.getDaysDifference(
+				new Date(utils.getState("departure")),
+				new Date(utils.getState("arrival"))
+			);
 
 			if (value <= 0 || diffDays < value) {
 				ctx.reply(

@@ -21,6 +21,8 @@ function updateSetting(attr, value) {
 		settings.budget = value;
 	} else if (attr == "pax") {
 		settings.pax = value;
+	} else if (attr == "isBusy") {
+		settings.isBusy = value;
 	} else {
 		settings.to = value;
 	}
@@ -56,6 +58,8 @@ function getState(attr) {
 		return settings.budget;
 	} else if (attr == "pax") {
 		return settings.pax;
+	} else if (attr == "isBusy") {
+		return settings.isBusy;
 	} else {
 		return settings.to;
 	}
@@ -175,6 +179,10 @@ function updatePaxSettings(persons) {
 	updateSetting("pax", persons);
 }
 
+function updateBusyState(bool) {
+	updateSetting("isBusy", bool);
+}
+
 function formatDate(datetime) {
 	function tConvert(time) {
 		// Check correct time format and split into components
@@ -215,6 +223,12 @@ function getRatingStr(rating) {
 	return ratingString;
 }
 
+function getDaysDifference(from, to) {
+	const oneDay = 24 * 60 * 60 * 1000;
+	const diffDays = Math.round(Math.abs((from - to) / oneDay));
+	return diffDays;
+}
+
 function getMedianPrice(flightsArr) {
 	if (flightsArr.length == 0) {
 		return 0;
@@ -239,6 +253,20 @@ function getMedianPrice(flightsArr) {
 	}
 
 	return median(prices);
+}
+
+function getLowestPrice(flightsArr) {
+	if (flightsArr.length <= 0) {
+		return 0;
+	}
+
+	flightsArr.sort((flightA, flightB) =>
+		flightA.pricing[0].price > flightB.pricing[0].price ? 1 : -1
+	);
+
+	//flightsArr.forEach((data) => console.log(data.pricing[0]));
+
+	return flightsArr[0].pricing[0].price;
 }
 
 function writeToFile(objectList, filename) {
@@ -280,5 +308,8 @@ module.exports = {
 	getRatingStr,
 	updatePaxSettings,
 	getMedianPrice,
+	getLowestPrice,
 	writeToFile,
+	updateBusyState,
+	getDaysDifference,
 };

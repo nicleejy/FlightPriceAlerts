@@ -75,14 +75,26 @@ bot.hears("⚙️ Settings", async (ctx) => {
 
 // FOR TESTING
 bot.hears("Check Prices", async (ctx) => {
-	ctx.telegram.sendMessage(
-		context.message.chat.id,
-		"Searching for flights...",
-		{
-			parse_mode: "Markdown",
-		}
-	);
-	main(ctx);
+	if (!utils.getState("isBusy")) {
+		utils.updateBusyState(true);
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"🔍 Searching for flights, this might take a while...",
+			{
+				parse_mode: "Markdown",
+			}
+		);
+		await main(ctx);
+		utils.updateBusyState(false);
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
+	}
 });
 
 const stage = new Scenes.Stage([
@@ -184,6 +196,28 @@ async function main(context) {
 	while (tempArrivalDate <= arrivalDate) {
 		console.log("Checking next travel window!");
 
+		const diffDays = utils.getDaysDifference(tempArrivalDate, arrivalDate);
+
+		console.log(diffDays);
+
+		if (diffDays == 0) {
+			context.telegram.sendMessage(
+				context.message.chat.id,
+				"Almost there... 🙂",
+				{
+					parse_mode: "Markdown",
+				}
+			);
+		} else {
+			context.telegram.sendMessage(
+				context.message.chat.id,
+				"Checking travel window...",
+				{
+					parse_mode: "Markdown",
+				}
+			);
+		}
+
 		var allFlights = [];
 
 		allFlights = await networkClient.queryUntilCompletion(
@@ -191,7 +225,7 @@ async function main(context) {
 			destination,
 			pax,
 			utils.getDateString(departureDate),
-			utils.getDateString(arrivalDate)
+			utils.getDateString(tempArrivalDate)
 		);
 
 		if (allFlights == false) {
@@ -222,20 +256,36 @@ async function main(context) {
 		tempArrivalDate = tempArrivalDate.addDays(1);
 	}
 
-	const median = utils.getMedianPrice(allData);
+	const median = Math.round(utils.getMedianPrice(allData) / pax);
+	const mininum = Math.round(utils.getLowestPrice(allData) / pax);
+
+	// var message = "";
+	// if (results.length > 0) {
+	// 	if (results.length == 1) {
+	// 		message = `Yay! I found ${results.length} flight under your budget! 😄\n\nThe median price of your flights is currently around \$${median} SGD per person. Note that I'll only display the top 3 results.`;
+	// 	} else {
+	// 		message = `Yay! I found ${results.length} flights under your budget! 😄\n\nThe median price of your flights is currently around \$${median} SGD per person. Note that I'll only display the top 3 results.`;
+	// 	}
+	// } else {
+	// 	if (median == 0) {
+	// 		message = "No flights found 😔";
+	// 	} else {
+	// 		message = `No flights found 😔\n\nThe median price of your flights is currently around \$${median} SGD per person. Perhaps you could try setting your budget higher?`;
+	// 	}
+	// }
 
 	var message = "";
 	if (results.length > 0) {
 		if (results.length == 1) {
-			message = `Yay! I found ${results.length} flight under your budget!😄\n\nThe median price of your flights is currently around \$${median} SGD. Note that I'll only display the top 3 results.`;
+			message = `Yay! I found ${results.length} flight under your budget! 😄\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Note that I'll only display the top 3 results.`;
 		} else {
-			message = `Yay! I found ${results.length} flights under your budget!😄\n\nThe median price of your flights is currently around \$${median} SGD. Note that I'll only display the top 3 results.`;
+			message = `Yay! I found ${results.length} flights under your budget! 😄\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Note that I'll only display the top 3 results.`;
 		}
 	} else {
-		if (avgPrice == 0) {
+		if (median == 0) {
 			message = "No flights found 😔";
 		} else {
-			message = `No flights found 😔\n\nThe median price of your flights is currently around \$${median}. Perhaps you could try setting your budget higher?`;
+			message = `No flights found 😔\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Perhaps you could try setting your budget higher?`;
 		}
 	}
 

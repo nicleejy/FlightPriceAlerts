@@ -24,6 +24,14 @@ const arrivalDateScene = new Scenes.WizardScene(
 
 		if (utils.isValidDate(input)) {
 			const date = utils.parseDate(input);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+
+			if (date < today) {
+				ctx.reply("Do not set a date in the past.");
+				return;
+			}
+
 			if (new Date(utils.getState("departure")) > date) {
 				// if departure date is later than arrival date,
 				// set departure date to one day before arrival
@@ -64,6 +72,14 @@ const departureDateScene = new Scenes.WizardScene(
 
 		if (utils.isValidDate(input)) {
 			const date = utils.parseDate(input);
+
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+
+			if (date < today) {
+				ctx.reply("Do not set a date in the past.");
+				return;
+			}
 
 			if (new Date(utils.getState("arrival")) < date) {
 				// if arrival date is earlier than departure date

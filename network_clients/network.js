@@ -25,7 +25,7 @@ async function queryUntilCompletion(
 			returnDate
 		);
 	} catch (error) {
-		console.log("Error has occured");
+		console.log("An error has occurred");
 		console.log(error);
 		return false;
 	}
@@ -78,6 +78,12 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 
 	const response = await axios.request(options);
 	var data = response.data;
+
+	console.log(data);
+
+	if (data.error == true) {
+		throw new Error("Invalid query");
+	}
 	return data;
 }
 
