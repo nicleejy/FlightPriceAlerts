@@ -4,9 +4,10 @@
   "stopovers": 1,
   "duration": 10,
   "from": "SIN",
-  "to": "HND",
+  "to": "MEL",
   "isSetting": null,
-  "budget": 750,
+  "budget": 997,
   "pax": 1,
-  "isBusy": false
+  "isBusy": false,
+  "callsRemaining": 850
 }

@@ -25,14 +25,20 @@ const arrivalDateScene = new Scenes.WizardScene(
 		if (utils.isValidDate(input)) {
 			const date = utils.parseDate(input);
 			const today = new Date();
+			const departureDate = new Date(utils.getState("departure"));
 			today.setHours(0, 0, 0, 0);
+
+			const diffDays = utils.getDaysDifference(departureDate, date);
 
 			if (date < today) {
 				ctx.reply("Do not set a date in the past.");
 				return;
+			} else if (diffDays < utils.getState("duration")) {
+				ctx.reply("Trip length is too long to be within these dates.");
+				return;
 			}
 
-			if (new Date(utils.getState("departure")) > date) {
+			if (departureDate > date) {
 				// if departure date is later than arrival date,
 				// set departure date to one day before arrival
 				utils.updateDateSettings(true, date.subtractDays(1));
@@ -76,8 +82,15 @@ const departureDateScene = new Scenes.WizardScene(
 			const today = new Date();
 			today.setHours(0, 0, 0, 0);
 
+			const arrivalDate = new Date(utils.getState("arrival"));
+
+			const diffDays = utils.getDaysDifference(date, arrivalDate);
+
 			if (date < today) {
 				ctx.reply("Do not set a date in the past.");
+				return;
+			} else if (diffDays < utils.getState("duration")) {
+				ctx.reply("Trip length is too long to be within these dates.");
 				return;
 			}
 

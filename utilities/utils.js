@@ -23,6 +23,8 @@ function updateSetting(attr, value) {
 		settings.pax = value;
 	} else if (attr == "isBusy") {
 		settings.isBusy = value;
+	} else if (attr == "callsRemaining") {
+		settings.callsRemaining = value;
 	} else {
 		settings.to = value;
 	}
@@ -60,6 +62,8 @@ function getState(attr) {
 		return settings.pax;
 	} else if (attr == "isBusy") {
 		return settings.isBusy;
+	} else if (attr == "callsRemaining") {
+		return settings.callsRemaining;
 	} else {
 		return settings.to;
 	}
@@ -84,7 +88,10 @@ function cancelProcess(context) {
 
 function filterAirports(searchInput) {
 	const filteredAirports = appConstants.airportsList.filter(function (airport) {
-		return airport.country.toLowerCase().includes(searchInput.toLowerCase());
+		return (
+			airport.country.toLowerCase().includes(searchInput.toLowerCase()) &&
+			airport.type == "Airports"
+		);
 	});
 	var airportMarkup = [["❌ Cancel"]];
 
@@ -181,6 +188,15 @@ function updatePaxSettings(persons) {
 
 function updateBusyState(bool) {
 	updateSetting("isBusy", bool);
+}
+
+function hasCallsRemaining() {
+	const calls = getState("callsRemaining");
+	if (calls - 1 <= 0) {
+		return false;
+	}
+	updateSetting("callsRemaining", calls - 1);
+	return true;
 }
 
 function formatDate(datetime) {
@@ -312,4 +328,5 @@ module.exports = {
 	writeToFile,
 	updateBusyState,
 	getDaysDifference,
+	hasCallsRemaining,
 };

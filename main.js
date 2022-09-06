@@ -10,6 +10,7 @@ const durationScene = require("./scenes/durationScene");
 const stopoverScene = require("./scenes/stopoverScene");
 const budgetScene = require("./scenes/budgetScene");
 const paxScene = require("./scenes/paxScene");
+const { filter } = require("async");
 
 // filter by max price and stopovers
 function filterFlights(allFlights, maxPrice, maxStopovers) {
@@ -46,7 +47,7 @@ bot.start(async (ctx) => {
 var CronJob = require("cron").CronJob;
 
 var job = new CronJob(
-	"* */2 * * *",
+	"* * */6 * *",
 	function () {
 		console.log("");
 	},
@@ -65,10 +66,7 @@ bot.hears("⚙️ Settings", async (ctx) => {
 			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
 		);
 	} else {
-		return await ctx.reply(
-			"Another process is ongoing, please wait! ⚠️",
-			Markup.keyboard(appConstants.settingsKeyboard).oneTime().resize()
-		);
+		return await ctx.reply("Another process is ongoing, please wait! ⚠️");
 	}
 });
 
@@ -110,50 +108,114 @@ bot.use(session());
 bot.use(stage.middleware());
 
 bot.hears("🛫 Departure Airport", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("DepartureScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("🛬 Arrival Airport", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("ArrivalScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("📆 Earliest Departure Date", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("DepartureDateScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("📆 Latest Arrival Date", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("ArrivalDateScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("⌛ Days", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("DurationScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("🛑 Stopovers", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("StopoverScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("💰 Budget", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("BudgetScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
 bot.hears("🧍‍♂️ Number of Travellers", (ctx) => {
-	if (utils.isAllowedSetting(ctx)) {
+	if (utils.isAllowedSetting(ctx) && !utils.getState("isBusy")) {
 		ctx.scene.enter("PaxScene");
+	} else {
+		ctx.telegram.sendMessage(
+			ctx.message.chat.id,
+			"Job in progress, please wait! ⚠️",
+			{
+				parse_mode: "Markdown",
+			}
+		);
 	}
 });
 
@@ -196,8 +258,6 @@ async function main(context) {
 
 		const diffDays = utils.getDaysDifference(tempArrivalDate, arrivalDate);
 
-		console.log(diffDays);
-
 		if (diffDays == 0) {
 			context.telegram.sendMessage(
 				context.message.chat.id,
@@ -209,7 +269,7 @@ async function main(context) {
 		} else {
 			context.telegram.sendMessage(
 				context.message.chat.id,
-				"Checking travel window...",
+				"Checking next travel window...",
 				{
 					parse_mode: "Markdown",
 				}
@@ -243,6 +303,21 @@ async function main(context) {
 		// pass date string in
 		const filteredFlights = filterFlights(allFlights, budget, stopovers);
 		console.log(`${filteredFlights.length} matching your budget`);
+
+		context.telegram.sendMessage(
+			context.message.chat.id,
+			`Found ${
+				allFlights.length == 0 ? "no" : allFlights.length
+			} flights in total and ${
+				filteredFlights.length == 0 ? "no" : filteredFlights.length
+			} flight${
+				filteredFlights.length == 0 || filteredFlights.length == 1 ? "" : "s"
+			} matching your budget so far...`,
+			{
+				parse_mode: "Markdown",
+			}
+		);
+
 		results.push(...filteredFlights);
 		allData.push(...allFlights);
 
@@ -254,6 +329,8 @@ async function main(context) {
 		departureDate = departureDate.addDays(1);
 		tempArrivalDate = tempArrivalDate.addDays(1);
 	}
+
+	await new Promise((resolve) => setTimeout(resolve, 1000));
 
 	const median = Math.round(utils.getMedianPrice(allData) / pax);
 	const mininum = Math.round(utils.getLowestPrice(allData) / pax);
@@ -276,15 +353,15 @@ async function main(context) {
 	var message = "";
 	if (results.length > 0) {
 		if (results.length == 1) {
-			message = `Yay! I found ${results.length} flight under your budget! 😄\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Note that I'll only display the top 3 results.`;
+			message = `Yay! I found ${results.length} flight under your budget! 😄\n\nThe median price of your flights is currently around \$${median} SGD per person. Note that I'll only display the top 3 results.`;
 		} else {
-			message = `Yay! I found ${results.length} flights under your budget! 😄\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Note that I'll only display the top 3 results.`;
+			message = `Yay! I found ${results.length} flights under your budget! 😄\n\nThe median price of your flights is currently around \$${median} SGD per person. Note that I'll only display the top 3 results.`;
 		}
 	} else {
-		if (median == 0) {
+		if (allData.length == 0) {
 			message = "No flights found 😔";
 		} else {
-			message = `No flights found 😔\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. Perhaps you could try setting your budget higher?`;
+			message = `No flights found 😔\n\nThe minimum price of your flights is currently around \$${mininum} SGD per person. You could try setting your budget higher, or increase the number of stopovers requested.`;
 		}
 	}
 
@@ -327,9 +404,9 @@ function displayFlightInformation(flightObj) {
 	if (stopovers1.length == 0) {
 		stopoverDetails1 = "This is a direct flight! 🎉";
 	} else if (stopovers1.length == 1) {
-		stopoverDetails1 = "⏰ Stopover at ";
+		stopoverDetails1 = `⏰ 1 stopover at `;
 	} else {
-		stopoverDetails1 = "⏰ Stopovers at ";
+		stopoverDetails1 = `⏰ ${stopovers1.length} stopovers at `;
 	}
 
 	stopovers1.forEach((item, index) => {
@@ -361,16 +438,16 @@ function displayFlightInformation(flightObj) {
 	const source2 = flights2[0].from;
 	const destination2 = flights2[segments2 - 1].to;
 
-	const header2 = `🔴 *Incoming Flight* 🔴\n\n${destination2} to ${source2} 🛬`;
+	const header2 = `🔴 *Incoming Flight* 🔴\n\n${source2} to ${destination2} 🛬`;
 
 	let stopoverDetails2 = "";
 
 	if (stopovers2.length == 0) {
 		stopoverDetails2 = "This is a direct flight! 🎉";
 	} else if (stopovers2.length == 1) {
-		stopoverDetails2 = "⏰ Stopover at ";
+		stopoverDetails2 = `⏰ 1 stopover at `;
 	} else {
-		stopoverDetails2 = "⏰ Stopovers at ";
+		stopoverDetails2 = `⏰ ${stopovers2.length} stopovers at `;
 	}
 
 	stopovers2.forEach((item, index) => {

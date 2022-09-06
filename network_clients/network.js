@@ -32,7 +32,7 @@ async function queryUntilCompletion(
 
 	while (flightData.context.status != "complete") {
 		console.log("Not complete, requerying!");
-		await new Promise((resolve) => setTimeout(resolve, 40000));
+		await new Promise((resolve) => setTimeout(resolve, 60000));
 		flightData = await getFlightData(
 			origin,
 			dest,
@@ -46,13 +46,18 @@ async function queryUntilCompletion(
 	const results = flightData.itineraries.results;
 	const allFlights = parseFlightData(results);
 
-	// utils.writeToFile(allFlights, "processed.json")
+	utils.writeToFile(allFlights, "processed.json");
 
 	return allFlights;
 }
 
 async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 	console.log("getting flight data...");
+
+	if (!utils.hasCallsRemaining()) {
+		throw new Error("Exceeded local max API quota");
+	}
+
 	const options = {
 		method: "GET",
 		url: "https://skyscanner44.p.rapidapi.com/search-extended",
@@ -78,8 +83,6 @@ async function getFlightData(origin, dest, pax, departureDate, returnDate) {
 
 	const response = await axios.request(options);
 	var data = response.data;
-
-	console.log(data);
 
 	if (data.error == true) {
 		throw new Error("Invalid query");
